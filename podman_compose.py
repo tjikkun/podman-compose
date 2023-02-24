@@ -2159,6 +2159,15 @@ def compose_down(compose, args):
 @cmd_run(podman_compose, "ps", "show status of containers")
 def compose_ps(compose, args):
     proj_name = compose.project_name
+    if args.services:
+        services = set(args.services)
+        name_filter = list(
+            itertools.chain(
+                *map(lambda x: ["--filter", f"name={proj_name}_{x}_"], services)
+            )
+        )
+    else:
+        name_filter = []
     if args.quiet is True:
         compose.podman.run(
             [],
@@ -2169,11 +2178,15 @@ def compose_ps(compose, args):
                 "{{.ID}}",
                 "--filter",
                 f"label=io.podman.compose.project={proj_name}",
-            ],
+            ]
+            + name_filter,
         )
     else:
         compose.podman.run(
-            [], "ps", ["-a", "--filter", f"label=io.podman.compose.project={proj_name}"]
+            [],
+            "ps",
+            ["-a", "--filter", f"label=io.podman.compose.project={proj_name}"]
+            + name_filter,
         )
 
 
@@ -2782,6 +2795,9 @@ def compose_push_parse(parser):
 def compose_ps_parse(parser):
     parser.add_argument(
         "-q", "--quiet", help="Only display container IDs", action="store_true"
+    )
+    parser.add_argument(
+        "services", metavar="services", nargs="*", help="services to list"
     )
 
 
